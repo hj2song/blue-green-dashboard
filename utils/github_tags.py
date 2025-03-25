@@ -2,25 +2,6 @@ import requests
 from datetime import datetime
 
 def get_repository_tags(username, token, owner, repo, limit=50):
-    """
-    GitHub API를 사용하여 지정된 레포지토리의 태그 목록을 가져옵니다.
-    간소화 버전: 태그 이름과 커밋 SHA만 빠르게 가져옵니다.
-    
-    Args:
-        username (str): GitHub 사용자명
-        token (str): GitHub 액세스 토큰
-        owner (str): 레포지토리 소유자 (organization 또는 사용자)
-        repo (str): 레포지토리 이름
-        limit (int, optional): 가져올 태그의 최대 수. 기본값은 50.
-        
-    Returns:
-        list: 태그 정보 딕셔너리의 리스트. 각 딕셔너리는 태그명, 커밋 SHA를 포함합니다.
-    """
-    headers = {
-        "Accept": "application/vnd.github.v3+json",
-        "Authorization": f"token {token}"
-    }
-    
     # 태그 목록만 한 번에 가져옵니다
     tags_url = f"https://api.github.com/repos/{owner}/{repo}/tags?per_page={limit}"
     
@@ -73,18 +54,6 @@ def get_repository_tags(username, token, owner, repo, limit=50):
         raise Exception(f"GitHub API 요청 오류: {str(e)}")
 
 def get_multiple_repos_tags(username, token, repos, limit=30):
-    """
-    여러 저장소의 태그를 가져와 통합한 목록을 반환합니다.
-    
-    Args:
-        username (str): GitHub 사용자명
-        token (str): GitHub 액세스 토큰
-        repos (list): 레포지토리 정보 딕셔너리의 리스트. 각 딕셔너리는 'owner'와 'repo' 키를 포함해야 함.
-        limit (int, optional): 각 레포지토리에서 가져올 태그의 최대 수. 기본값은 30.
-        
-    Returns:
-        dict: 레포지토리별 태그 정보
-    """
     all_tags = {}
     
     for repo_info in repos:
