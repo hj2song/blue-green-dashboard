@@ -1,0 +1,40 @@
+import os
+from .docker_utils import run_command
+
+def parse_nginx_conf(app, env):
+    conf_path = f"/etc/nginx/conf.d/{app}.conf"
+    if not os.path.exists(conf_path):
+        print(f"Config file not found: {conf_path}")
+        return "unknown", "unknown"
+    
+    try:
+        config_name = f"{app}"
+        
+        # 테스트 서비스 색상 추출 (head -n1)
+        test_service_cmd = (
+            f"nginx -T 2>/dev/null | "
+            f"grep -A 100 {config_name}.conf | "
+            f"grep proxy_pass | "
+            f"head -n1 | "
+            f"cut -d '_' -f 4 | "
+            f"tr -d ';'"
+        )
+        test_service = run_command(test_service_cmd).strip()
+        print(f"Test service cmd result for {app} ({env}): '{test_service}'")
+
+        # 실제 서비스 색상 추출 (tail -n1)
+        main_service_cmd = (
+            f"nginx -T 2>/dev/null | "
+            f"grep -A 100 {config_name}.conf | "
+            f"grep proxy_pass | "
+            f"tail -n1 | "
+            f"cut -d '_' -f 4 | "
+            f"tr -d ';'"
+        )
+        main_service = run_command(main_service_cmd).strip()
+        print(f"Main service cmd result for {app} ({env}): '{main_service}'")
+        
+        return main_service if main_service else "unknown", test_service if test_service else "unknown"
+    except Exception as e:
+        print(f"Error parsing nginx config for {env}-{app}: {e}")
+        return "unknown", "unknown"

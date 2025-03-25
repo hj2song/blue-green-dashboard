@@ -1,0 +1,6 @@
+{
+    "environments": ["prod"],
+    "applications": ["admin", "office", "docs", "web", "mobile"],
+    "default_refresh_interval": 60,
+    "github_repo": "meatbox-docker"
+}

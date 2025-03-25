@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}블루-그린 배포 대시보드{% endblock %}
+{% block content %}
+<div class="selector-container">
+    <img src="{{ url_for('static', filename='images/main.png') }}" alt="Main Image" class="main-image">
+    <h1>블루-그린 배포 상태 대시보드</h1>
+    <!-- GitHub 계정 정보 입력 폼 -->
+    <div class="github-info-container">
+        <form id="github-info-form" action="/api/github/info/direct" method="post">
+            <div class="github-info-status {% if has_github_info %}has-github-info{% else %}no-github-info{% endif %}">
+                <span class="github-info-status-text">
+                    {% if has_github_info %}
+                    GitHub 계정 설정됨: {{ github_username }}
+                    {% else %}
+                    GitHub 계정이 설정되지 않았습니다
+                    {% endif %}
+                </span>
+                {% if has_github_info %}
+                <button type="button" id="remove-github-info-button" class="github-info-button">계정 정보 제거</button>
+                {% else %}
+                <div class="github-inputs">
+                    <input type="text" name="github_username" id="github-username-input" placeholder="GitHub 사용자명" required>
+                    <input type="password" name="github_token" id="github-token-input" placeholder="GitHub 토큰" required>
+                    <button type="submit" class="github-info-button">계정 정보 저장</button>
+                </div>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+    <!-- 새로고침 컨트롤 -->
+    <div class="refresh-controls">
+        <div class="refresh-toggle">
+            <label for="refresh-toggle" style="margin-right: 10px;">자동 새로고침</label>
+            <label class="switch">
+                <input type="checkbox" id="refresh-toggle" {% if refresh_enabled %}checked{% endif %}>
+                <span class="slider round"></span>
+            </label>
+        </div>
+        <div class="refresh-interval">
+            <label for="refresh-interval">새로고침 주기:</label>
+            <select id="refresh-interval">
+                <option value="10" {% if refresh_interval == 10 %}selected{% endif %}>10초</option>
+                <option value="30" {% if refresh_interval == 30 %}selected{% endif %}>30초</option>
+                <option value="60" {% if refresh_interval == 60 %}selected{% endif %}>1분</option>
+                <option value="300" {% if refresh_interval == 300 %}selected{% endif %}>5분</option>
+                <option value="custom">사용자 설정</option>
+            </select>
+        </div>
+        <div class="custom-interval" id="custom-interval-container">
+            <label for="custom-interval-value">설정값(초):</label>
+            <input type="number" id="custom-interval-value" min="1" value="{{ refresh_interval }}">
+        </div>
+        <!-- 수동 새로고침 버튼 -->
+        <button id="manual-refresh" class="manual-refresh-button">새로고침</button>
+    </div>
+    <div class="app-grid">
+        {% for app in applications %}
+            <a href="{{ url_for('dashboard', app_name=app) }}">
+                <div class="app-card">
+                    <div class="app-name">{{ app.upper() }}</div>
+                    <div class="app-desc">{{ app.capitalize() }} 상태 확인</div>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+    <!-- 액션 버튼 컨테이너 -->
+    <div class="action-buttons-container">
+        <button id="deploy-button" class="action-button deploy-button">컨테이너 배포</button>
+        <button id="interchange-button" class="action-button interchange-button">서비스 교체</button>
+        <!-- 새로 추가된 태그 확인 버튼 -->
+        <button id="tags-button" class="action-button tags-button">태그 확인</button>
+    </div>
+    <!-- GitHub 워크플로우 링크 (동일한 너비와 정렬 적용) -->
+    <div class="github-links-container">
+        <a href="https://github.com/meatbox-git/meatbox-docker/actions/workflows/deploy-blue-green.yml" target="_blank" class="github-link">
+            <svg class="github-icon" viewBox="0 0 16 16" width="16" height="16">
+                <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+            </svg>
+            배포 워크플로우
+        </a>
+        <a href="https://github.com/meatbox-git/meatbox-docker/actions/workflows/interchange-blue-green.yml" target="_blank" class="github-link">
+            <svg class="github-icon" viewBox="0 0 16 16" width="16" height="16">
+                <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+            </svg>
+            교체 워크플로우
+        </a>
+    </div>
+    <!-- 컨테이너 배포 모달 -->
+    <div id="deploy-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">컨테이너 배포</span>
+                <span class="close-modal" data-modal="deploy-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="deploy-app">APP:</label>
+                    <select class="form-select" id="deploy-app">
+                        <option value="">-- 앱 선택 --</option>
+                        <option value="office">office</option>
+                        <option value="admin">admin</option>
+                        <option value="docs">docs</option>
+                        <option value="web">web</option>
+                        <option value="mobile">mobile</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="deploy-env">ENV:</label>
+                    <select class="form-select" id="deploy-env">
+                        <option value="">-- 환경 선택 --</option>
+                        <option value="prod">prod</option>
+                        <option value="stage">stage</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="deploy-tag">TAG:</label>
+                    <input type="text" class="form-input" id="deploy-tag" placeholder="예시: 2024/w45/master-20241106_v01">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-button cancel-button" data-modal="deploy-modal">취소</button>
+                <button class="modal-button submit-button" id="deploy-submit">배포</button>
+            </div>
+        </div>
+    </div>
+    <!-- 서비스 교체 모달 -->
+    <div id="interchange-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">서비스 교체</span>
+                <span class="close-modal" data-modal="interchange-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="interchange-app">APP:</label>
+                    <select class="form-select" id="interchange-app">
+                        <option value="">-- 앱 선택 --</option>
+                        <option value="office">office</option>
+                        <option value="admin">admin</option>
+                        <option value="docs">docs</option>
+                        <option value="web">web</option>
+                        <option value="mobile">mobile</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="interchange-env">ENV:</label>
+                    <select class="form-select" id="interchange-env">
+                        <option value="">-- 환경 선택 --</option>
+                        <option value="prod">prod</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-button cancel-button" data-modal="interchange-modal">취소</button>
+                <button class="modal-button submit-button" id="interchange-submit">교체</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 태그 확인 모달 (새로 추가됨) -->
+    <div id="tags-modal" class="modal">
+        <div class="modal-content tags-modal-content">
+            <div class="modal-header">
+                <span class="modal-title">GitHub 레포지토리 태그 확인</span>
+                <span class="close-modal" data-modal="tags-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="tags-container">
+                    <div class="tags-loading" id="tags-loading">
+                        <div class="loading-spinner"></div>
+                        <p>태그 정보 로딩 중...</p>
+                    </div>
+                    <div class="tags-error" id="tags-error">
+                        <p>태그 정보를 불러오는데 실패했습니다.</p>
+                        <p id="tags-error-message"></p>
+                    </div>
+                    <div class="repo-tabs" id="repo-tabs">
+                        <!-- 탭은 자바스크립트에서 동적으로 생성됩니다 -->
+                    </div>
+                    <div class="tags-list" id="tags-list">
+                        <!-- 태그 목록은 자바스크립트에서 동적으로 생성됩니다 -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-button close-button" data-modal="tags-modal">닫기</button>
+                <button class="modal-button copy-button" id="copy-selected-tag">선택한 태그 복사</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        블루-그린 배포 상태 대시보드 | 앱을 선택하여 상세 정보를 확인하세요
+    </div>
+</div>
+{% endblock %}
