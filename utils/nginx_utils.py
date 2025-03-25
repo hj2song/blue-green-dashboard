@@ -109,10 +109,3 @@ def parse_nginx_conf(app, env):
     except Exception as e:
         print(f"Error parsing nginx config for {env}-{app}: {e}")
         return "unknown", "unknown"
-
-# 테스트용 코드
-if __name__ == "__main__":
-    app = "office"
-    env = "prod"
-    main, test = parse_nginx_conf(app, env)
-    print(f"최종 결과: main={main}, test={test}")

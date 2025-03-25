@@ -11,29 +11,22 @@ from utils.github_tags import get_multiple_repos_tags  # 새로 추가된 GitHub
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.urandom(24)  # 세션 사용을 위한 secret key 설정
 
-# config.json 파일에서 설정 로드
+# load_config 함수 수정
 def load_config():
     config_path = os.path.join(os.path.dirname(__file__), 'config.json')
     try:
         with open(config_path, 'r') as f:
             return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
-        # 기본 설정값
-        return {
-            "environments": ["prod"],
-            "applications": ["admin", "office", "docs", "web", "mobile"],
-            "default_refresh_interval": 10,
-            "github_owner": "meatbox-git",
-            "github_repo": "meatbox-docker"
-        }
+        # 기본값 없이 빈 딕셔너리 반환
+        return {}
 
-# 글로벌 설정 변수
+# 글로벌 설정 변수 수정
 config = load_config()
-ENVIRONMENTS = config.get("environments", ["prod"])
-APPLICATIONS = config.get("applications", ["admin", "office", "docs", "web", "mobile"])
-DEFAULT_REFRESH_INTERVAL = config.get("default_refresh_interval", 10)
-GITHUB_OWNER = config.get("github_owner", "")  # 기본 값 제거
-GITHUB_REPO = config.get("github_repo", "meatbox-docker")
+ENVIRONMENTS = config.get("environments")
+APPLICATIONS = config.get("applications")
+DEFAULT_REFRESH_INTERVAL = config.get("default_refresh_interval")
+GITHUB_REPO = config.get("github_repo")
 
 def get_app_services_info(selected_app=None):
     """선택된 앱 또는 모든 앱의 서비스 정보를 수집합니다."""
@@ -188,13 +181,15 @@ def github_info_status():
         "username": username
     })
 
-# 새로 추가: GitHub 태그 정보를 가져오는 API 엔드포인트
+# Github 태그 조회 API
 @app.route('/api/github/tags', methods=['GET'])
 def get_github_tags():
     """GitHub 레포지토리의 태그 정보를 가져옵니다."""
     # 세션에서 GitHub 계정 정보 가져오기
     github_username = session.get('github_username')
     github_token = session.get('github_token')
+    
+    print(f"태그 API 호출됨: 사용자={github_username}, 토큰 있음={bool(github_token)}")
     
     if not github_username or not github_token:
         return jsonify({
@@ -209,11 +204,15 @@ def get_github_tags():
     ]
     
     try:
+        print(f"태그 정보 요청 시작: {repos}")
         # 여러 레포지토리의 태그 가져오기
         tags_data = get_multiple_repos_tags(github_username, github_token, repos, limit=50)
+        print(f"태그 정보 요청 완료: {len(tags_data)} 레포지토리")
         return jsonify({"status": "success", "data": tags_data})
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)})
+        error_msg = str(e)
+        print(f"태그 정보 요청 오류: {error_msg}")
+        return jsonify({"status": "error", "message": error_msg})
 
 @app.route('/api/github/deploy', methods=['POST'])
 def github_deploy():

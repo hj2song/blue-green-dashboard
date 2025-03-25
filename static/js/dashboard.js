@@ -88,14 +88,19 @@
             });
         }
 
-        // 태그 확인 버튼 이벤트 핸들러 (새로 추가)
+        // 태그 확인 버튼 이벤트 핸들러
         if (tagsButton) {
             tagsButton.addEventListener('click', function() {
+                console.log('태그 버튼이 클릭되었습니다.');
                 if (tagsModal) {
                     tagsModal.style.display = 'block';
                     fetchTagsData();
+                } else {
+                    console.error('태그 모달을 찾을 수 없습니다.');
                 }
             });
+        } else {
+            console.error('태그 버튼을 찾을 수 없습니다.');
         }
 
         // 선택한 태그 복사 버튼 이벤트 핸들러 (새로 추가)
@@ -449,15 +454,21 @@
         });
     }
 
-    // 태그 데이터 가져오기 함수 (새로 추가)
+    // 태그 데이터 가져오기 함수
     function fetchTagsData() {
+        console.log('태그 데이터를 가져오는 중...');
+        
         const tagsLoading = document.getElementById('tags-loading');
         const tagsError = document.getElementById('tags-error');
         const repoTabs = document.getElementById('repo-tabs');
         const tagsList = document.getElementById('tags-list');
         
         if (!tagsLoading || !tagsError || !repoTabs || !tagsList) {
-            console.error('태그 관련 DOM 요소를 찾을 수 없습니다.');
+            console.error('태그 관련 DOM 요소를 찾을 수 없습니다:');
+            console.error('tagsLoading:', tagsLoading);
+            console.error('tagsError:', tagsError);
+            console.error('repoTabs:', repoTabs);
+            console.error('tagsList:', tagsList);
             return;
         }
         
@@ -469,22 +480,27 @@
         
         // 이전에 이미 데이터를 가져왔으면 재사용
         if (tagsData) {
+            console.log('기존 태그 데이터 재사용');
             renderTagsData(tagsData);
             tagsLoading.style.display = 'none';
             return;
         }
         
         // API 호출로 태그 정보 가져오기
+        console.log('태그 API 호출 시작');
         fetch('/api/github/tags')
             .then(response => {
+                console.log('API 응답 코드:', response.status);
                 if (!response.ok) {
-                    throw new Error('태그 정보를 가져오는데 실패했습니다');
+                    throw new Error(`태그 정보를 가져오는데 실패했습니다 (${response.status})`);
                 }
                 return response.json();
             })
             .then(data => {
+                console.log('API 데이터 수신:', data);
                 if (data.status === 'success') {
                     tagsData = data.data;
+                    window.tagsData = data.data; // 전역 변수에도 저장
                     renderTagsData(tagsData);
                 } else {
                     throw new Error(data.message || '태그 정보를 불러오는데 실패했습니다');
@@ -503,17 +519,21 @@
             });
     }
 
-    // 태그 데이터 렌더링 함수 (새로 추가)
+    // 태그 데이터 렌더링 함수
     function renderTagsData(data) {
+        console.log('태그 데이터 렌더링 시작');
+        
         const repoTabs = document.getElementById('repo-tabs');
         const tagsList = document.getElementById('tags-list');
         
         if (!repoTabs || !tagsList) {
+            console.error('태그 렌더링 DOM 요소를 찾을 수 없습니다.');
             return;
         }
         
         // 레포지토리 목록이 없거나 비어있을 경우
         if (!data || Object.keys(data).length === 0) {
+            console.log('태그 데이터가 비어있습니다');
             tagsList.innerHTML = '<div class="empty-tags">태그 정보가 없습니다.</div>';
             return;
         }
@@ -521,7 +541,10 @@
         // 첫번째 레포지토리를 기본 선택
         if (!selectedRepo) {
             selectedRepo = Object.keys(data)[0];
+            window.selectedRepo = selectedRepo; // 전역 변수에도 저장
         }
+        
+        console.log('선택된 레포지토리:', selectedRepo);
         
         // 레포지토리 탭 생성
         repoTabs.innerHTML = '';
@@ -539,9 +562,12 @@
                 
                 // 선택된 레포지토리 변경
                 selectedRepo = this.getAttribute('data-repo');
+                window.selectedRepo = selectedRepo; // 전역 변수에도 저장
                 selectedTag = null; // 선택된 태그 초기화
+                window.selectedTag = null; // 전역 변수에도 저장
                 
                 // 태그 목록 업데이트
+                console.log('레포지토리 변경:', selectedRepo);
                 updateTagsList(data[selectedRepo]);
             });
             
@@ -552,11 +578,14 @@
         updateTagsList(data[selectedRepo]);
     }
 
-    // 태그 목록 업데이트 함수 (새로 추가)
+    // 태그 목록 업데이트 함수
     function updateTagsList(tags) {
+        console.log('태그 목록 업데이트:', tags ? tags.length : 0, '개 태그');
+        
         const tagsList = document.getElementById('tags-list');
         
         if (!tagsList) {
+            console.error('태그 목록 DOM 요소를 찾을 수 없습니다.');
             return;
         }
         
@@ -581,6 +610,8 @@
                 // 현재 태그 선택
                 this.classList.add('selected');
                 selectedTag = this.getAttribute('data-tag');
+                window.selectedTag = selectedTag; // 전역 변수에도 저장
+                console.log('태그 선택됨:', selectedTag);
             });
             
             // 태그 정보 생성
