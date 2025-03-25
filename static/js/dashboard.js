@@ -23,15 +23,16 @@
         const manualRefreshButton = document.getElementById('manual-refresh');
         const deployButton = document.getElementById('deploy-button');
         const interchangeButton = document.getElementById('interchange-button');
-        const tagsButton = document.getElementById('tags-button'); // 새로 추가
+        const tagsButton = document.getElementById('tags-button');
+        const refreshTagsButton = document.getElementById('refresh-tags-button');
         const removeGithubInfoButton = document.getElementById('remove-github-info-button');
         const deployModal = document.getElementById('deploy-modal');
         const interchangeModal = document.getElementById('interchange-modal');
-        const tagsModal = document.getElementById('tags-modal'); // 새로 추가
+        const tagsModal = document.getElementById('tags-modal');
         const closeButtons = document.querySelectorAll('.close-modal, .cancel-button');
         const deploySubmit = document.getElementById('deploy-submit');
         const interchangeSubmit = document.getElementById('interchange-submit');
-        const copySelectedTag = document.getElementById('copy-selected-tag'); // 새로 추가
+        const copySelectedTag = document.getElementById('copy-selected-tag');
         const githubInfoForm = document.getElementById('github-info-form');
         const githubInputs = document.querySelectorAll('#github-username-input, #github-token-input');
         const refreshMeta = document.getElementById('refresh-meta');
@@ -101,6 +102,29 @@
             });
         } else {
             console.error('태그 버튼을 찾을 수 없습니다.');
+        }
+
+        if (refreshTagsButton) {
+            refreshTagsButton.addEventListener('click', function() {
+                console.log('태그 새로고침 버튼이 클릭되었습니다.');
+                // 버튼에 회전 애니메이션 추가
+                this.classList.add('spinning');
+                
+                // 태그 데이터를 강제로 다시 가져오기 위해 캐시된 데이터 초기화
+                tagsData = null;
+                window.tagsData = null;
+                
+                // 태그 데이터 다시 가져오기
+                fetchTagsData().then(() => {
+                    // 로딩이 완료되면 회전 애니메이션 제거
+                    this.classList.remove('spinning');
+                }).catch(() => {
+                    // 오류 발생 시에도 회전 애니메이션 제거
+                    this.classList.remove('spinning');
+                });
+            });
+        } else {
+            console.error('태그 새로고침 버튼을 찾을 수 없습니다.');
         }
 
         // 선택한 태그 복사 버튼 이벤트 핸들러 (새로 추가)
@@ -469,7 +493,7 @@
             console.error('tagsError:', tagsError);
             console.error('repoTabs:', repoTabs);
             console.error('tagsList:', tagsList);
-            return;
+            return Promise.reject(new Error('DOM 요소를 찾을 수 없습니다.'));
         }
         
         // 로딩 표시 및 초기화
@@ -483,12 +507,12 @@
             console.log('기존 태그 데이터 재사용');
             renderTagsData(tagsData);
             tagsLoading.style.display = 'none';
-            return;
+            return Promise.resolve(tagsData);
         }
         
         // API 호출로 태그 정보 가져오기
         console.log('태그 API 호출 시작');
-        fetch('/api/github/tags')
+        return fetch('/api/github/tags')
             .then(response => {
                 console.log('API 응답 코드:', response.status);
                 if (!response.ok) {
@@ -502,6 +526,7 @@
                     tagsData = data.data;
                     window.tagsData = data.data; // 전역 변수에도 저장
                     renderTagsData(tagsData);
+                    return tagsData;
                 } else {
                     throw new Error(data.message || '태그 정보를 불러오는데 실패했습니다');
                 }
@@ -513,6 +538,7 @@
                 if (errorMessage) {
                     errorMessage.textContent = error.message;
                 }
+                throw error; // 에러를 다시 throw하여 호출자가 처리할 수 있도록 함
             })
             .finally(() => {
                 tagsLoading.style.display = 'none';

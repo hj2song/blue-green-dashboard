@@ -604,3 +604,42 @@ a {
         font-size: 14px;
     }
 }
+/* 태그 새로고침 버튼 스타일 */
+.modal-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.refresh-tags-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #555;
+    transition: all 0.2s ease;
+}
+
+.refresh-tags-button:hover {
+    background-color: #f0f0f0;
+    color: #2196F3;
+    transform: scale(1.1);
+}
+
+.refresh-tags-button svg {
+    width: 16px;
+    height: 16px;
+}
+
+.refresh-tags-button.spinning svg {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
